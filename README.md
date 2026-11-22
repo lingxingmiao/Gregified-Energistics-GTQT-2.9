@@ -27,7 +27,7 @@ class to map onto). Without a parent class the JVM marks the GE class invalid.
 |------|--------|
 | AE2 host base | Vendored `MetaTileEntityAEHostablePart` into GE's own package (`api/metatileentity`), reconstructed from the 2.8.10 source. Dropped 2.9-removed callbacks (`getCableConnectionType`, `gridChanged`), replaced `ConfigHolder.compat.ae2.*` with local defaults, widened `clearMachineInventory` to `List`, rewrote Java-16 pattern matching to Java 8. |
 | `MetaTileEntityCraftingProvider` | Now extends the vendored base instead of the deleted GT class. |
-| Structure mixin | `AssemblyLineMixin` targeted 2.8 `FactoryBlockPattern`/`TraceabilityPredicate` (rewritten into `StructureRuntime`/`PieceTemplate` in 2.9). Disabled and kept as `.java.disabled` for a future rewrite. |
+| Structure (assembly line) | Old `AssemblyLineMixin` (2.8 `FactoryBlockPattern`) disabled. Replaced by `DeclarativePatternBuilderMixin`: a HEAD `@ModifyVariable` widens the assembly line's `'I'` slot varargs (`ITEM_IMPORT_BUS[ULV]`) to also accept GE's two ME buses. The 2.9 structure definition is built lazily via `TemplatePool`/`SoftReferenceHolder`, so the late mixin applies in time without any class-load ordering hack. |
 | `IMultiblockAbilityPart` | 2.9 added abstract `registerAbilities(AbilityInstances)`; implemented in `MTEAbstractAssemblyLineBus`. |
 | `clearMachineInventory` | 2.9 signature is `List<ItemStack>` (was `NonNullList`); updated in both the abstract bus and `MTEMEAssemblyLineBus`. |
 | AE2 holder interfaces | **Critical runtime fix**: GTQT 2.9 removed `IActionHost`/`IGridProxyable` from `MetaTileEntityHolder` (and `MetaTileEntity.getProxy()`), which would make `getProxy()` silently return null and leave every ME bus permanently offline. `MetaTileEntityHolderMixin` re-adds the interfaces and forwards to the vendored AE2 part's own `AENetworkProxy`. |
@@ -51,26 +51,36 @@ class to map onto). Without a parent class the JVM marks the GE class invalid.
 The jars in `libs/` are dev-only `compileOnly` dependencies; at runtime the mod
 expects GTQT 2.9, AE2 and ModularUI to be installed in `mods/`.
 
+## Verification (real Prism / Cleanroom instance)
+
+With `gregifiedenergistics-0.2.0.jar` installed alongside GTQT 2.9, AE2 UEL and
+ModularUI, the mod reaches **Loaded / Constructed** state (`| LC |
+gregifiedenergistics | 0.2.0 |`) with **no GE-caused exception** — the remaining
+crash in the pack comes from other still-2.8 addons (e.g. GregTech Food Option),
+not from GE. All GE mixins apply; the only notice is a harmless
+`getActionableNode` method-overwrite skip because PrismPlan already provides
+that same method on the holder.
+
+The `DeclarativePatternBuilderMixin` injection point was additionally verified
+offline (`javap` + ASM): `metaTileEntities` is an instance method with the exact
+`(char, MetaTileEntity[])` descriptor the `@ModifyVariable` targets.
+
 ## Known limitations
 
-- **The ME assembly-line buses cannot yet be placed into the assembly line.**
-  The 2.8 `AssemblyLineMixin` changed the structure string "FIF"→"FBF" and
-  injected a `FactoryBlockPattern.where(char, TraceabilityPredicate)` predicate;
-  GTQT 2.9 replaced that whole framework with declarative `StructureDefinition`
-  / `TemplatePool` / `DeclarativePatternBuilder`, and removed the static
-  `MultiblockControllerBase.metaTileEntities(...)` helper the mixin used.
-  Re-enabling this requires pre-registering a custom assembly-line structure
-  definition under the `gregtech:assembly_line` TemplatePool key before
-  `MetaTileEntityAssemblyLine` loads (its 'I' slot currently only accepts the ULV
-  item import bus). The buses themselves register, craft and expose their AE2
-  interfaces correctly — they just are not yet accepted by the multiblock shape.
-  This is tracked as future work; contributions welcome.
+- The 2.9 structure definition for the assembly line is built lazily (first
+  structure check). If a future GTQT build changes the 'I' slot to a different
+  array shape (e.g. more than one ULV bus), the narrow match in
+  `DeclarativePatternBuilderMixin` will simply not widen it — update the
+  condition there.
 - The vendored AE2 host base is a minimal reconstruction: it provides the AE2 grid
   proxy / monitor / online-status plumbing GE needs, without the 2.8-only TOP/Waila
   probe callbacks.
 - The two AE2 CPU-cluster mixins use `LocalCapture.CAPTURE_FAILHARD` with ordinal
   positions verified against ae2-uel 0.56.7; a different AE2 build may fail to
   apply. Pin the AE2 version or relax the captures if needed.
+- The AE2 proxy lifecycle injections use `require = 0`, so a GTQT build that
+  renames the holder lifecycle methods degrades gracefully (ME persistence is
+  lost) rather than blocking startup.
 
 ## License
 

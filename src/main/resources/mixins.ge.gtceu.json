@@ -15,6 +15,7 @@
 	"pipenet.net.OpticalNetWalkerMixin",
 	"pipenet.net.OpticalPipeNetMixin",
 	"recipes.RecipeMapMixin",
+	"pattern.DeclarativePatternBuilderMixin",
 	"metatileentity.MetaTileEntityMixin",
 	"metatileentity.MetaTileEntityHolderMixin"
   ],
