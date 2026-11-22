@@ -1,0 +1,11 @@
+// GE-2.9 port: the original project's spotless step pins palantir/cleanthat
+// artifacts that are not needed to produce the mod jar. Keep the config file for
+// upstream parity but do NOT gate `build` on it, so a clean checkout builds
+// offline with only the local GTQT/AE2/ModularUI jars in libs/.
+spotless {
+	enforceCheck = false
+	java {
+		target 'src/**/*.java'
+		trimTrailingWhitespace()
+	}
+}

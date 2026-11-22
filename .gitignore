@@ -1,0 +1,33 @@
+# eclipse
+bin
+*.launch
+.settings
+.metadata
+.project
+
+# idea
+out
+*.ipr
+*.iws
+*.iml
+.idea
+
+# lsp
+.factorypath
+.classpath
+
+# gradle
+build
+.gradle
+
+# other
+eclipse
+run
+
+# mac
+.DS_Store
+
+# GE-2.9: local dev-only compile jars (GTQT 2.9 / AE2 UEL / ModularUI).
+# See libs/README.md for where to obtain them. Do NOT commit ~40MB of binaries.
+libs/*.jar
+
