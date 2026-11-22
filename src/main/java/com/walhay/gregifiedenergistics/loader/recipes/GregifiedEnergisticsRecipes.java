@@ -22,7 +22,7 @@ public class GregifiedEnergisticsRecipes {
 
 		ASSEMBLY_LINE_RECIPES
 				.recipeBuilder()
-				.input(DATA_ACCESS_HATCH[0])
+				.input(DATA_ACCESS_HATCH[1]) // 2.8 DATA_ACCESS_HATCH was EV; 2.9 array [0]=MV [1]=EV [2]=LuV [3]=UV [4]=creative
 				.input(iface, 4)
 				.input(ROBOT_ARM_LuV, 2)
 				.input(ELECTRIC_MOTOR_LuV, 4)
@@ -42,7 +42,7 @@ public class GregifiedEnergisticsRecipes {
 
 		ASSEMBLY_LINE_RECIPES
 				.recipeBuilder()
-				.input(DATA_ACCESS_HATCH[DATA_ACCESS_HATCH.length - 1])
+				.input(DATA_ACCESS_HATCH[2]) // 2.8 ADVANCED_DATA_ACCESS_HATCH was LuV
 				.input(ME_ASSEMBLY_LINE_BUS)
 				.input(ROBOT_ARM_ZPM, 2)
 				.input(ELECTRIC_MOTOR_ZPM, 4)

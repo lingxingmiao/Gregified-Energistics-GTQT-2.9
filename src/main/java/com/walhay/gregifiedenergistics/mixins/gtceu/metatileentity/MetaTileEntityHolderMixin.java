@@ -17,10 +17,15 @@ import com.walhay.gregifiedenergistics.api.metatileentity.MetaTileEntityAEHostab
 import gregtech.api.metatileentity.MetaTileEntity;
 import gregtech.api.metatileentity.MetaTileEntityHolder;
 import net.minecraft.inventory.InventoryCrafting;
+import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.World;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
+import org.spongepowered.asm.mixin.injection.At;
+import org.spongepowered.asm.mixin.injection.Inject;
+import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
+import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 /**
  * GE-2.9: restores the AE2 interfaces that GTQT 2.9 removed from
@@ -133,6 +138,52 @@ public abstract class MetaTileEntityHolderMixin
             return proxy.getGrid();
         } catch (GridAccessException ignored) {
             return null;
+        }
+    }
+
+    // ---- AE2 proxy lifecycle -------------------------------------------------
+    //
+    // GTCEu 2.8 called readFromNBT_AENetwork / writeToNBT_AENetwork /
+    // invalidateAE / onChunkUnloadAE from the holder. GTQT 2.9 removed all four.
+    // Without them the AENetworkProxy node id/channel is never saved (ME buses
+    // lose their network on world reload) and nodes are never destroyed (GridNode
+    // leak on block break / chunk unload). Re-add them here, forwarding to the
+    // GE AE2 part's own proxy.
+
+    // require=0: if a GTQT build renames these lifecycle methods the mixin still
+    // applies (the AE2 interfaces above remain), just without proxy persistence.
+    // Prefer a soft failure over blocking startup.
+    @Inject(method = "writeToNBT(Lnet/minecraft/nbt/NBTTagCompound;)Lnet/minecraft/nbt/NBTTagCompound;",
+            at = @At("RETURN"), remap = false, require = 0)
+    private void ge$writeAEToNBT(NBTTagCompound compound, CallbackInfoReturnable<NBTTagCompound> cir) {
+        AENetworkProxy proxy = getProxy();
+        if (proxy != null) {
+            proxy.writeToNBT(compound);
+        }
+    }
+
+    @Inject(method = "readFromNBT(Lnet/minecraft/nbt/NBTTagCompound;)V",
+            at = @At("RETURN"), remap = false, require = 0)
+    private void ge$readAEFromNBT(NBTTagCompound compound, CallbackInfo ci) {
+        AENetworkProxy proxy = getProxy();
+        if (proxy != null) {
+            proxy.readFromNBT(compound);
+        }
+    }
+
+    @Inject(method = "invalidate()V", at = @At("HEAD"), remap = false, require = 0)
+    private void ge$invalidateAE(CallbackInfo ci) {
+        AENetworkProxy proxy = getProxy();
+        if (proxy != null) {
+            proxy.invalidate();
+        }
+    }
+
+    @Inject(method = "onChunkUnload()V", at = @At("HEAD"), remap = false, require = 0)
+    private void ge$onChunkUnloadAE(CallbackInfo ci) {
+        AENetworkProxy proxy = getProxy();
+        if (proxy != null) {
+            proxy.onChunkUnload();
         }
     }
 }
